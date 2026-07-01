@@ -6,25 +6,35 @@ from ..database import get_db, serialize_id, to_object_id
 from .service import decode_token
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    if not token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication required")
+
     try:
         payload = decode_token(token)
     except JWTError as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Authentication required"
         ) from exc
 
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token subject")
+        raise HTTPException(status_code=403, detail="Authentication required")
 
-    db = get_db()
-    user = await db.users.find_one({"_id": to_object_id(user_id)})
+    try:
+        db = get_db()
+        user = await db.users.find_one({"_id": to_object_id(user_id)})
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service unavailable",
+        ) from exc
+
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=403, detail="Authentication required")
 
     return serialize_id(user)
 

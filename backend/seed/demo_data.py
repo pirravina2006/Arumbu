@@ -15,20 +15,20 @@ from app.auth.utils import hash_password
 
 # Tamil Nadu names for demo environment
 WORKER_NAMES = [
-    "Lakshmi", "Priya", "Meena", "Anita", "Deepa",
-    "Kavya", "Shreya", "Divya", "Neha", "Pooja"
+    "Lakshmi", "Priya", "Meena", "Anitha", "Deepa",
+    "Kavya", "Sangeetha", "Divya", "Nithya", "Geetha"
 ]
 
 CHILD_NAMES = [
-    "Arjun", "Arun", "Deepak", "Dinesh", "Rajesh",
-    "Amrit", "Asha", "Anjali", "Anushka", "Arambika",
-    "Balaji", "Bhavna", "Bhuvan", "Bikram",
-    "Chitra", "Chetan", "Chand", "Chandrika"
+    "Karthik", "Arun", "Vignesh", "Dinesh", "Suresh",
+    "Ramesh", "Muthu", "Saravanan", "Rajesh", "Kannan",
+    "Murugan", "Ganesh", "Balaji", "Praveen",
+    "Ashok", "Senthil", "Siva", "Manikandan"
 ]
 
 SUPERVISOR_NAMES = [
-    "Ramesh Kumar", "Suresh Singh", "Mohan Lal",
-    "Narender Kumar", "Veera Swamy"
+    "Ramesh Natarajan", "Suresh Krishnan", "Senthil Kumar",
+    "Murugan Ramasamy", "Balaji Subramaniam"
 ]
 
 AWC_CENTERS = [
@@ -42,7 +42,7 @@ AWC_CENTERS = [
 
 async def seed_demo_data():
     """Generate complete demo dataset."""
-    client = await get_client()
+    client = get_client()
     db = client.anganwadi
 
     # Clear existing data
@@ -114,25 +114,30 @@ async def seed_demo_data():
     print("Seeding Children...")
     child_ids = {}
     for awc in AWC_CENTERS:
+        child_count = 0
         for i in range(random.randint(6, 8)):
+            child_count += 1
             child_name = random.choice(CHILD_NAMES)
             dob = datetime.utcnow() - timedelta(days=random.randint(180, 1460))  # 6-48 months
             gender = random.choice(["M", "F"])
+            custom_child_id = f"{awc['code']}-{str(child_count).zfill(4)}"
 
             child_doc = {
+                "child_id": custom_child_id,
                 "name": child_name,
                 "date_of_birth": dob,
                 "gender": gender,
                 "awc_code": awc["code"],
                 "awc_name": awc["name"],
-                "parent_name": f"Parent of {child_name}",
+                "parent_name": random.choice(WORKER_NAMES) + f" {random.choice(['Krishnan', 'Natarajan', 'Rajan', 'Ramasamy', 'Subramaniam', 'Karthikeyan', 'Chandran', 'Pillai', 'Naidu'])}",
                 "parent_phone": f"94000{random.randint(10000, 99999)}",
+                "vaccinations": random.sample(["BCG", "OPV-0", "Hep B-0", "OPV-1", "Pentavalent-1", "Rotavirus-1"], random.randint(1, 6)),
                 "created_at": datetime.utcnow(),
             }
 
             result = await db.children.insert_one(child_doc)
             child_doc["_id"] = result.inserted_id
-            child_ids[result.inserted_id] = child_doc
+            child_ids[custom_child_id] = child_doc
 
     # 4. Seed Growth Records (2-5 per child)
     print("Seeding Growth Records...")
@@ -140,7 +145,7 @@ async def seed_demo_data():
     mam_created = False
     normal_created = False
 
-    for child_id, child_doc in child_ids.items():
+    for custom_child_id, child_doc in child_ids.items():
         num_measurements = random.randint(2, 5)
         for m in range(num_measurements):
             days_ago = 30 * (num_measurements - m)
@@ -176,7 +181,7 @@ async def seed_demo_data():
                 normal_created = True
 
             measurement_doc = {
-                "child_id": str(child_id),
+                "child_id": custom_child_id,
                 "awc_code": child_doc["awc_code"],
                 "measurement_date": measurement_date,
                 "age_months": age_months,
@@ -198,10 +203,11 @@ async def seed_demo_data():
 
     # 5. Seed Nutrition Logs (1 per child)
     print("Seeding Nutrition Logs...")
-    for child_id in list(child_ids.keys())[:5]:  # Only 5 for demo
+    for custom_child_id in list(child_ids.keys())[:5]:  # Only 5 for demo
+        child_doc = child_ids[custom_child_id]
         nutrition_doc = {
-            "child_id": str(child_id),
-            "awc_code": child_ids[child_id]["awc_code"],
+            "child_id": custom_child_id,
+            "awc_code": child_doc["awc_code"],
             "log_date": datetime.utcnow() - timedelta(days=random.randint(1, 7)),
             "food_items": [
                 {"name": "Rice", "quantity_g": 100},
@@ -226,9 +232,10 @@ async def seed_demo_data():
     # 6. Seed Alerts (for SAM/MAM cases if they exist)
     print("Seeding Alerts...")
     if sam_created:
+        first_child_id = list(child_ids.keys())[0]
         alert_doc = {
-            "child_id": str(list(child_ids.keys())[0]),
-            "awc_code": child_ids[list(child_ids.keys())[0]]["awc_code"],
+            "child_id": first_child_id,
+            "awc_code": child_ids[first_child_id]["awc_code"],
             "alert_type": "sam_detected",
             "severity": "critical",
             "message": "🚨 CRITICAL: Child classified as SAM (WHZ: -3.20). Immediate referral required.",
@@ -251,7 +258,7 @@ async def seed_demo_data():
     print(f"   Children: {len(child_ids)}")
     print(f"   Measurements: {sum(1 for _ in child_ids)}")  # Approximation
 
-    await client.close()
+    client.close()
 
 
 if __name__ == "__main__":

@@ -15,13 +15,18 @@ from .rate_limit import add_rate_limiting
 
 app = FastAPI(title="Anganwadi Smart Health Monitoring System")
 
+
+@app.get("/")
+async def root():
+    return {"message": "Anganwadi API is running"}
+
 # Add rate limiting
 limiter = add_rate_limiting(app)
 app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[settings.frontend_url, "http://127.0.0.1:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"] ,
     allow_headers=["*"] ,

@@ -90,12 +90,30 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '700' }}>
-        {getWelcomeMessage()}, {user?.name || 'Worker'}!
-      </h1>
-      <p style={{ margin: '0 0 28px 0', color: '#6b7280', fontSize: '14px' }}>
-        {user?.awc_code} · {user?.role}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+        <img 
+          src="/arumbu-logo.jpg" 
+          alt="Arumbu Logo" 
+          style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }} 
+        />
+        <div>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '32px', fontWeight: '800', color: 'var(--primary-600)' }}>
+            Arumbu
+          </h1>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: '15px', fontWeight: '500' }}>
+            Smart Health Monitoring System
+          </p>
+        </div>
+      </div>
+      
+      <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '32px', border: '1px solid #e2e8f0' }}>
+        <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700' }}>
+          {getWelcomeMessage()}, {user?.name || 'Worker'}!
+        </h2>
+        <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+          {user?.awc_code} · <span style={{ textTransform: 'capitalize' }}>{user?.role}</span>
+        </p>
+      </div>
 
       {/* Monthly Stats */}
       <div style={{ marginBottom: '32px' }}>

@@ -10,8 +10,8 @@ export default defineConfig({
       injectRegister: "auto",
       outDir: "dist",
       manifest: {
-        name: "Anganwadi Smart Health Monitoring",
-        short_name: "ICDS Health Monitor",
+        name: "Arumbu Smart Health",
+        short_name: "Arumbu",
         description: "Digital health monitoring system for ICDS centers",
         theme_color: "#3b82f6",
         background_color: "#ffffff",

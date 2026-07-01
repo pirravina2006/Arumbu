@@ -26,6 +26,7 @@ async def create_measurement(payload: MeasurementIn, user=Depends(get_current_us
 
 @router.get("/{child_id}")
 async def get_growth_history(child_id: str, user=Depends(get_current_user)):
+    child_id = child_id.strip()
     child = await get_child_by_child_id(child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -38,6 +39,7 @@ async def get_growth_history(child_id: str, user=Depends(get_current_user)):
 
 @router.get("/{child_id}/latest")
 async def get_latest(child_id: str, user=Depends(get_current_user)):
+    child_id = child_id.strip()
     child = await get_child_by_child_id(child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -54,6 +56,7 @@ async def get_latest(child_id: str, user=Depends(get_current_user)):
 
 @router.get("/{child_id}/chart-data")
 async def get_chart(child_id: str, user=Depends(get_current_user)):
+    child_id = child_id.strip()
     child = await get_child_by_child_id(child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")

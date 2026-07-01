@@ -199,7 +199,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label style={labelStyle}>Email *</label>
-                  <input style={fieldStyle} type="email" value={formData.email} onChange={updateForm("email")} placeholder="priya@anganwadi.tn" required />
+                  <input style={fieldStyle} type="email" value={formData.email} onChange={updateForm("email")} placeholder="priya@arumbu.tn" required />
                 </div>
                 <div>
                   <label style={labelStyle}>Password *</label>

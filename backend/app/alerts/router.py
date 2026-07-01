@@ -56,7 +56,7 @@ async def get_child_alerts(
     current_user: dict = Depends(get_current_user),
 ):
     """Fetch all alerts for a specific child (for child profile page)."""
-    alerts = await list_alerts_for_child(child_id)
+    alerts = await list_alerts_for_child(child_id.strip())
     return alerts
 
 

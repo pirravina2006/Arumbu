@@ -25,8 +25,12 @@ export default function AppLayout({ children }) {
       <header className="app-topbar">
         <div className="topbar-inner">
           <div className="brand">
-            <span className="brand-dot" />
-            Anganwadi Health
+            <img 
+              src="/arumbu-logo.jpg" 
+              alt="Arumbu Logo" 
+              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
+            />
+            Arumbu
           </div>
           <nav className="nav-links">
             {navLinks.map(({ to, label, end }) => (

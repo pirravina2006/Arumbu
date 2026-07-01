@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { growthApi } from "../api/growthApi.js";
+import { getChildById, calcAgeMonths } from "../api/childrenApi.js";
 import { saveMeasurementOffline, getOfflineStats } from "../utils/offlineDB.js";
 import { getSyncStatus } from "../utils/offlineSync.js";
 
@@ -17,6 +18,9 @@ export default function LogMeasurement() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineStats, setOfflineStats] = useState({ pending: 0, total: 0 });
   const [loading, setLoading] = useState(false);
+  const [childInfo, setChildInfo] = useState(null);   // fetched child record
+  const [childLookupError, setChildLookupError] = useState("");
+  const childIdRef = useRef(""); // always holds latest child_id value (avoids stale closure)
 
   useEffect(() => {
     // Monitor online/offline status
@@ -41,6 +45,24 @@ export default function LogMeasurement() {
 
   const update = (field) => (event) => {
     setForm({ ...form, [field]: event.target.value });
+  };
+
+  /** When the worker finishes typing the child ID, fetch DOB and auto-fill age. */
+  const handleChildIdBlur = async () => {
+    const id = childIdRef.current.trim(); // use ref to avoid stale closure
+    if (!id) return;
+    setChildLookupError("");
+    setChildInfo(null);
+    try {
+      const child = await getChildById(id);
+      setChildInfo(child);
+      // Prefer server-computed age_months; fall back to client calc
+      const months = child.age_months != null ? child.age_months : calcAgeMonths(child.dob);
+      setForm(prev => ({ ...prev, age_months: String(months) }));
+    } catch {
+      setChildLookupError("Child ID not found. Please check and re-enter.");
+      setForm(prev => ({ ...prev, age_months: "" }));
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -72,6 +94,8 @@ export default function LogMeasurement() {
           height_cm: "",
           muac_cm: "",
         });
+        setChildInfo(null);
+        setChildLookupError("");
       } else {
         // Save offline
         await saveMeasurementOffline(measurementData);
@@ -174,7 +198,13 @@ export default function LogMeasurement() {
             type="text"
             placeholder="e.g., TN-BNG-001-0001"
             value={form.child_id}
-            onChange={update("child_id")}
+            onChange={(e) => {
+              childIdRef.current = e.target.value; // keep ref in sync
+              setForm({ ...form, child_id: e.target.value });
+              setChildInfo(null);
+              setChildLookupError("");
+            }}
+            onBlur={handleChildIdBlur}
             required
             style={{
               width: "100%",
@@ -184,6 +214,28 @@ export default function LogMeasurement() {
               boxSizing: "border-box",
             }}
           />
+          {childLookupError && (
+            <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#dc2626" }}>{childLookupError}</p>
+          )}
+          {childInfo && (() => {
+            const months = calcAgeMonths(childInfo.dob);
+            const yrs = Math.floor(months / 12);
+            const rem = months % 12;
+            const label = yrs > 0
+              ? `${yrs} yr${yrs > 1 ? "s" : ""} ${rem} mo`
+              : `${months} month${months !== 1 ? "s" : ""}`;
+            return (
+              <div style={{
+                marginTop: "8px", padding: "10px 12px",
+                backgroundColor: "#f0f9ff", border: "1px solid #bae6fd",
+                borderRadius: "6px", fontSize: "13px", color: "#0369a1",
+              }}>
+                <strong>{childInfo.name}</strong> &nbsp;·&nbsp;
+                DOB: {childInfo.dob} &nbsp;·&nbsp;
+                <span style={{ fontWeight: "700" }}>Age: {months} months ({label})</span>
+              </div>
+            );
+          })()}
         </div>
 
         <div style={{ marginBottom: "16px" }}>
@@ -211,20 +263,29 @@ export default function LogMeasurement() {
           </label>
           <input
             type="number"
-            placeholder="12"
+            placeholder={childInfo ? "Auto-filled from DOB" : "Enter child ID first"}
             value={form.age_months}
-            onChange={update("age_months")}
+            onChange={childInfo ? undefined : update("age_months")}
+            readOnly={!!childInfo}
             required
             min="0"
-            max="60"
+            max="120"
             style={{
               width: "100%",
               padding: "8px 12px",
               border: "1px solid #d1d5db",
               borderRadius: "4px",
               boxSizing: "border-box",
+              backgroundColor: childInfo ? "#f9fafb" : "white",
+              color: childInfo ? "#6b7280" : "#111827",
+              fontWeight: childInfo ? "700" : "400",
             }}
           />
+          {childInfo && (
+            <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#6b7280" }}>
+              Auto-calculated from date of birth.
+            </p>
+          )}
         </div>
 
         <div style={{ marginBottom: "16px" }}>

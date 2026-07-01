@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { logDiet, fetchNutritionLog, askNutritionQuestion } from "../api/nutritionApi.js";
+import { logDiet, fetchNutritionLog } from "../api/nutritionApi.js";
+import { getChildById, calcAgeMonths } from "../api/childrenApi.js";
 
 const fieldStyle = {
   width: "100%",
@@ -44,27 +45,8 @@ function ScoreBadge({ score }) {
   );
 }
 
-function AnalysisCard({ analysis, logId, childId }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [asking, setAsking] = useState(false);
-  const [askError, setAskError] = useState("");
+function AnalysisCard({ analysis }) {
   const [showMealPlan, setShowMealPlan] = useState(false);
-
-  const handleAsk = async () => {
-    if (!question.trim()) return;
-    setAsking(true);
-    setAnswer("");
-    setAskError("");
-    try {
-      const { answer: ans } = await askNutritionQuestion({ log_id: logId, child_id: childId, question });
-      setAnswer(ans);
-    } catch {
-      setAskError("Could not get a response. Please try again.");
-    } finally {
-      setAsking(false);
-    }
-  };
 
   return (
     <div style={{ marginTop: "24px" }}>
@@ -207,61 +189,6 @@ function AnalysisCard({ analysis, logId, childId }) {
             )}
           </div>
         )}
-
-        {/* Ask AI */}
-        <div style={{
-          padding: "16px",
-          backgroundColor: "#faf5ff",
-          border: "1px solid #e9d5ff",
-          borderRadius: "8px",
-        }}>
-          <p style={{ margin: "0 0 10px 0", fontWeight: "700", fontSize: "14px", color: "#6b21a8" }}>
-            🤖 Ask AI a Follow-up Question
-          </p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              style={{ ...fieldStyle, flex: 1 }}
-              placeholder="e.g. What breakfast is best for iron deficiency at this age?"
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !asking && handleAsk()}
-            />
-            <button
-              onClick={handleAsk}
-              disabled={asking || !question.trim()}
-              style={{
-                padding: "10px 16px",
-                backgroundColor: asking || !question.trim() ? "#9ca3af" : "#7c3aed",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: asking || !question.trim() ? "not-allowed" : "pointer",
-                fontWeight: "600",
-                fontSize: "13px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {asking ? "Asking..." : "Ask AI"}
-            </button>
-          </div>
-          {askError && (
-            <p style={{ margin: "8px 0 0 0", fontSize: "13px", color: "#dc2626" }}>{askError}</p>
-          )}
-          {answer && (
-            <div style={{
-              marginTop: "12px",
-              padding: "12px 14px",
-              backgroundColor: "white",
-              border: "1px solid #ddd6fe",
-              borderRadius: "6px",
-              fontSize: "14px",
-              color: "#374151",
-              lineHeight: "1.6",
-            }}>
-              <span style={{ fontWeight: "600", color: "#7c3aed" }}>AI: </span>{answer}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -307,6 +234,8 @@ export default function LogDiet() {
   });
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [childInfo, setChildInfo] = useState(null);
+  const [childLookupError, setChildLookupError] = useState("");
 
   // Analysis polling state
   const [submittedLog, setSubmittedLog] = useState(null); // { logId, childId, analysisQueued }
@@ -315,6 +244,7 @@ export default function LogDiet() {
   const [analysisError, setAnalysisError] = useState("");
   const pollCount = useRef(0);
   const intervalRef = useRef(null);
+  const childIdRef = useRef(""); // always holds latest child_id (avoids stale closure)
 
   useEffect(() => {
     if (!submittedLog || pollState !== "polling") return;
@@ -346,6 +276,20 @@ export default function LogDiet() {
   }, [submittedLog, pollState]);
 
   const updateField = (field, value) => setForm({ ...form, [field]: value });
+
+  /** Fetch child info + auto-calculate age when the Child ID field is left. */
+  const handleChildIdBlur = async () => {
+    const id = childIdRef.current.trim(); // use ref to avoid stale closure
+    if (!id) return;
+    setChildLookupError("");
+    setChildInfo(null);
+    try {
+      const child = await getChildById(id);
+      setChildInfo(child);
+    } catch {
+      setChildLookupError("Child ID not found. Please verify and re-enter.");
+    }
+  };
 
   const addFoodItem = () =>
     setForm({ ...form, food_items: [...form.food_items, { name: "", quantity_g: "" }] });
@@ -412,6 +356,8 @@ export default function LogDiet() {
     setPollState("idle");
     setAnalysis(null);
     setAnalysisError("");
+    setChildInfo(null);
+    setChildLookupError("");
   };
 
   return (
@@ -468,9 +414,37 @@ export default function LogDiet() {
               style={fieldStyle}
               placeholder="e.g., TN-CBE-01-007-0001"
               value={form.child_id}
-              onChange={(e) => updateField("child_id", e.target.value)}
+              onChange={(e) => {
+                childIdRef.current = e.target.value; // keep ref in sync
+                updateField("child_id", e.target.value);
+                setChildInfo(null);
+                setChildLookupError("");
+              }}
+              onBlur={handleChildIdBlur}
               required
             />
+            {childLookupError && (
+              <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#dc2626" }}>{childLookupError}</p>
+            )}
+            {childInfo && (() => {
+              const months = childInfo.age_months != null ? childInfo.age_months : calcAgeMonths(childInfo.dob);
+              const yrs = Math.floor(months / 12);
+              const rem = months % 12;
+              const label = yrs > 0
+                ? `${yrs} yr${yrs > 1 ? "s" : ""} ${rem} mo`
+                : `${months} month${months !== 1 ? "s" : ""}`;
+              return (
+                <div style={{
+                  marginTop: "6px", padding: "8px 12px",
+                  backgroundColor: "#f0f9ff", border: "1px solid #bae6fd",
+                  borderRadius: "6px", fontSize: "12px", color: "#0369a1",
+                }}>
+                  <strong>{childInfo.name}</strong> &nbsp;·&nbsp;
+                  DOB: {childInfo.dob} &nbsp;·&nbsp;
+                  <span style={{ fontWeight: "700" }}>Age: {months} months ({label})</span>
+                </div>
+              );
+            })()}
           </div>
           <div>
             <label style={labelStyle}>Date *</label>
@@ -621,8 +595,6 @@ export default function LogDiet() {
         <div style={{ maxWidth: "640px" }}>
           <AnalysisCard
             analysis={analysis}
-            logId={submittedLog.logId}
-            childId={submittedLog.childId}
           />
         </div>
       )}

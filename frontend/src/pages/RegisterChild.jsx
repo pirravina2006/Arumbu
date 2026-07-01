@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createChild } from "../api/childrenApi.js";
+import { calcAgeMonths } from "../api/childrenApi.js";
 import { useAuthStore } from "../auth/useAuth.js";
 
 const fieldStyle = {
@@ -19,6 +20,13 @@ const labelStyle = {
   fontSize: "14px",
   color: "#374151",
 };
+
+// Compute the allowed date-of-birth range for children aged 0–10.
+const today = new Date();
+const maxDob = today.toISOString().split("T")[0]; // today (newborns allowed)
+const minDobDate = new Date(today);
+minDobDate.setFullYear(minDobDate.getFullYear() - 10);
+const minDob = minDobDate.toISOString().split("T")[0]; // exactly 10 years ago
 
 export default function RegisterChild() {
   const user = useAuthStore((state) => state.user);
@@ -47,6 +55,18 @@ export default function RegisterChild() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage({ text: "", type: "" });
+
+    // Age validation — child must be 10 years old or younger.
+    if (form.dob) {
+      const dob = new Date(form.dob);
+      const ageMs = Date.now() - dob.getTime();
+      const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
+      if (ageYears > 10) {
+        setMessage({ text: "❌ Only children aged 10 years or younger can be registered in this AWC programme.", type: "error" });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const created = await createChild(form);
@@ -120,8 +140,26 @@ export default function RegisterChild() {
               type="date"
               value={form.dob}
               onChange={update("dob")}
+              min={minDob}
+              max={maxDob}
               required
             />
+            {form.dob && (() => {
+              const months = calcAgeMonths(form.dob);
+              const yrs = Math.floor(months / 12);
+              const rem = months % 12;
+              const label = yrs > 0
+                ? `${yrs} yr${yrs > 1 ? "s" : ""} ${rem} month${rem !== 1 ? "s" : ""}`
+                : `${months} month${months !== 1 ? "s" : ""}`;
+              return (
+                <p style={{ margin: "6px 0 0 0", fontSize: "13px", fontWeight: "600", color: "#0369a1" }}>
+                  🗓️ Age: {months} months ({label})
+                </p>
+              );
+            })()}
+            <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#6b7280" }}>
+              Only children aged 0 – 10 years can be enrolled.
+            </p>
           </div>
         </div>
 

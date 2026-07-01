@@ -29,6 +29,14 @@ export default function LoginPage() {
   return (
     <div className="auth-shell">
       <div className="auth-card">
+        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+          <img 
+            src="/arumbu-logo.jpg" 
+            alt="Arumbu Logo" 
+            style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', marginBottom: '0.5rem' }} 
+          />
+          <h2 style={{ margin: 0, color: "var(--primary-600)" }}>Arumbu</h2>
+        </div>
         <div className="badge">Welcome back</div>
         <h1 className="auth-title">Sign in</h1>
         <p className="auth-subtitle">

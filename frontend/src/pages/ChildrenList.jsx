@@ -228,8 +228,8 @@ export default function ChildrenList() {
                     {formatDate(child.latest_measurement_date)}
                   </td>
                   <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                    <Link
-                      to={`/children/${child.child_id}`}
+                    <button
+                      onClick={() => navigate(`/children/${child.child_id}`)}
                       style={{
                         display: "inline-block",
                         padding: "6px 14px",
@@ -240,10 +240,20 @@ export default function ChildrenList() {
                         fontSize: "13px",
                         fontWeight: "600",
                         border: "1px solid #bfdbfe",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#dbeafe";
+                        e.currentTarget.style.borderColor = "#93c5fd";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#eff6ff";
+                        e.currentTarget.style.borderColor = "#bfdbfe";
                       }}
                     >
                       View Profile
-                    </Link>
+                    </button>
                   </td>
                 </tr>
               ))}

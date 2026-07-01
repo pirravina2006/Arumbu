@@ -16,6 +16,7 @@ async def log_nutrition(
     background_tasks: BackgroundTasks,
     user=Depends(get_current_user),
 ):
+    payload.child_id = payload.child_id.strip()
     child = await get_child_by_child_id(payload.child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -68,6 +69,7 @@ async def get_nutrition_log_detail(log_id: str, user=Depends(get_current_user)):
 
 @router.post("/ask")
 async def ask_nutrition(payload: NutritionAskIn, user=Depends(get_current_user)):
+    payload.child_id = payload.child_id.strip()
     child = await get_child_by_child_id(payload.child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")

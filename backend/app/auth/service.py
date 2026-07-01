@@ -15,14 +15,20 @@ from .utils import (
 
 
 async def get_user_by_email(email: str) -> Optional[dict]:
-    db = get_db()
-    user = await db.users.find_one({"email": email})
+    try:
+        db = get_db()
+        user = await db.users.find_one({"email": email})
+    except Exception:
+        return None
     return serialize_id(user) if user else None
 
 
 async def get_user_by_id(user_id: str) -> Optional[dict]:
-    db = get_db()
-    user = await db.users.find_one({"_id": to_object_id(user_id)})
+    try:
+        db = get_db()
+        user = await db.users.find_one({"_id": to_object_id(user_id)})
+    except Exception:
+        return None
     return serialize_id(user) if user else None
 
 

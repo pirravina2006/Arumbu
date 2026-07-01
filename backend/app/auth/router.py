@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/15 minutes")
+@limiter.limit("100/15 minutes")
 async def login(request: Request, data: UserLogin, response: Response):
     user = await authenticate_user(data.email, data.password)
     if not user:

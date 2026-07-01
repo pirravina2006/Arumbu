@@ -15,6 +15,7 @@ async def generate_meal_plan(
     payload: MealPlanIn,
     user=Depends(get_current_user),
 ):
+    payload.child_id = payload.child_id.strip()
     child = await get_child_by_child_id(payload.child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -51,6 +52,7 @@ async def generate_meal_plan(
 
 @router.get("/{child_id}/latest")
 async def get_latest(child_id: str, user=Depends(get_current_user)):
+    child_id = child_id.strip()
     child = await get_child_by_child_id(child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")

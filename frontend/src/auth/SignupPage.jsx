@@ -43,8 +43,16 @@ export default function SignupPage() {
   return (
     <div className="auth-shell">
       <div className="auth-card">
-        <div className="badge">Create account</div>
-        <h1 className="auth-title">Join the Anganwadi network</h1>
+        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+          <img 
+            src="/arumbu-logo.jpg" 
+            alt="Arumbu Logo" 
+            style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', marginBottom: '0.5rem' }} 
+          />
+          <h2 style={{ margin: 0, color: "var(--primary-600)" }}>Arumbu</h2>
+        </div>
+        <div className="badge">Create Account</div>
+        <h1 className="auth-title">Join the Arumbu network</h1>
         <p className="auth-subtitle">
           Set up a worker account to start logging growth and nutrition data.
         </p>
